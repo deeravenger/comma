@@ -25,7 +25,7 @@ class ResponseTest extends PHPUnit_Framework_TestCase
         );
         $response = new \Comma\Response();
         foreach ($expected as $header) {
-            $response->header($header);
+            $response->setHeader($header);
         }
 
         $reflection = new \ReflectionClass($response);
@@ -195,6 +195,6 @@ class ResponseTest extends PHPUnit_Framework_TestCase
         $content = 'Test content!';
         $response = new \Comma\Response();
         $response->text($content);
-        $this->assertEquals($content, $response->content());
+        $this->assertEquals($content, $response->getContent());
     }
 }

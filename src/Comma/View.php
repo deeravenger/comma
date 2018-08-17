@@ -1,22 +1,22 @@
 <?php
+declare(strict_types=1);
+
 namespace Comma;
 
 /**
- * Native template engine
+ * Class View
  * @package Comma
- * @author Dmitry Kuznetsov <kuznetsov2d@gmail.com>
- * @license The MIT License (MIT)
  */
-class View
+class View implements ViewInterface
 {
     /**
-     * @var string View path
+     * @var string
      */
-    protected $_path;
+    protected $path = '';
     /**
      * @var array
      */
-    protected $_data = array();
+    protected $data = [];
 
     /**
      * @param string $path Path to template
@@ -24,43 +24,46 @@ class View
      */
     public function __construct($path, array $data = array())
     {
-        $this->_path = $path;
+        $this->path = $path;
         foreach ($data as $key => $value) {
             $this->assign($key, $value);
         }
     }
 
+    /**
+     * @return string
+     */
     public function __toString()
     {
         return $this->render();
     }
 
     /**
-     * Assign param to template
      * @param string $key
-     * @param mixed|View $value
-     * @return View
+     * @param mixed $value
+     * @return ViewInterface
      */
-    public function assign($key, $value)
+    public function assign(string $key, $value): ViewInterface
     {
-        $this->_data[$key] = $value;
+        $this->data[$key] = $value;
+
         return $this;
     }
 
     /**
-     * Render content
      * @return string
      */
-    public function render()
+    public function render(): string
     {
         ob_start();
-        $render = function () {
-            extract(func_get_arg(1), EXTR_OVERWRITE);
-            require func_get_arg(0);
+        $render = function ($path, array $data) {
+            extract($data, EXTR_OVERWRITE);
+            require_once $path;
         };
-        $render($this->_path, $this->_data);
+        $render($this->path, $this->data);
         $result = ob_get_contents();
         ob_end_clean();
+
         return $result;
     }
 }

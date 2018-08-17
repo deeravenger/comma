@@ -1,21 +1,22 @@
 {
-    "name": "comma/core",
+    "name": "comma/framework",
     "type": "library",
-    "description": "Another micro-framework \"Comma\"",
-    "keywords": ["framework", "micro-framework", "micro", "comma"],
+    "description": "Framework \"Comma\" for microservices",
+    "keywords": ["framework", "micro-framework", "micro-service", "micro", "comma", "service"],
     "license": "The MIT License (MIT)",
     "authors": [
         {
             "name": "Dmitry Kuznetsov",
-            "email": "kuznetsov2d@gmail.com"
+            "email": "d@kuznetsov.io"
         }
     ],
     "require": {
-        "pimple/pimple": "~2.0.0"
+        "php": ">=7.0",
+        "psr/http-message": "^1.0"
     },
     "autoload": {
         "psr-0": {
-            "Comma\\": "source/"
+            "Comma\\": "src/"
         }
     },
     "support": {

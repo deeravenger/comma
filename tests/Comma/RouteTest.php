@@ -109,7 +109,7 @@ class RouteTest extends PHPUnit_Framework_TestCase
 
         $stdClass = new stdClass();
         $route = new \Comma\Route('/', $stdClass);
-        $route->run();
+        $route->handle();
     }
 
     public function testDependencies()
@@ -147,7 +147,7 @@ class RouteTest extends PHPUnit_Framework_TestCase
             ->inject('dependency2', 123);
 
         $route->match(sprintf('/%s/%d', $nameValue, $ageValue));
-        $actual = $route->run();
+        $actual = $route->handle();
         $expected = array($nameValue, $dependencyValue, $ageValue);
         $this->assertEquals($expected, $actual);
     }
@@ -164,7 +164,7 @@ class RouteTest extends PHPUnit_Framework_TestCase
             ->inject('dependency2', 123);
 
         $route->match(sprintf('/%s/', $nameValue));
-        $actual = $route->run();
+        $actual = $route->handle();
         $expected = array($nameValue, $dependencyValue, 28);
         $this->assertEquals($expected, $actual);
     }
@@ -184,6 +184,6 @@ class RouteTest extends PHPUnit_Framework_TestCase
             ->inject('dependency2', 123);
 
         $route->match(sprintf('/%s/%d', $nameValue, $ageValue));
-        $route->run();
+        $route->handle();
     }
 }

@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 namespace Comma;
 
 /**
@@ -12,11 +14,11 @@ class Request
     /**
      * @var string Current request method
      */
-    protected $_method;
+    protected $method;
     /**
      * @var array
      */
-    protected $_data = array();
+    protected $data = [];
 
     /**
      * @param string|null $requestMethod Request method (GET/POST/PUT/DELETE and other)
@@ -25,36 +27,37 @@ class Request
      * @param array|null $post $_POST data
      * @param array|null $files $_FILES data
      * @param array|null $methods HTTP methods with data (array( 'PUT' => array(), 'DELETE' => array() )
-     * @throws \Comma\Exception
+     * @throws Exception
      */
     public function __construct($requestMethod = null, array $server = null, array $get = null, array $post = null, array $files = null, array $methods = null)
     {
-        $methods = is_array($methods) ? $methods : array();
+        $methods = is_array($methods) ? $methods : [];
         foreach ($methods as $method => $data) {
             $method = strtoupper(trim($method));
-            $this->_data[$method] = is_array($data) ? $data : array();
+            $this->data[$method] = is_array($data) ? $data : [];
         }
-        $this->_data['SERVER'] = is_array($server) ? $server : $_SERVER;
-        $this->_data['GET'] = is_array($get) ? $get : $_GET;
-        $this->_data['POST'] = is_array($post) ? $post : $_POST;
-        $this->_data['FILES'] = is_array($files) ? $files : $_FILES;
-        $this->_method = !is_null($requestMethod) ? $requestMethod : strtoupper($this->server('REQUEST_METHOD', 'GET'));
+        $this->data['SERVER'] = is_array($server) ? $server : $_SERVER;
+        $this->data['GET'] = is_array($get) ? $get : $_GET;
+        $this->data['POST'] = is_array($post) ? $post : $_POST;
+        $this->data['FILES'] = is_array($files) ? $files : $_FILES;
+        $this->method = $requestMethod ?? strtoupper($this->server('REQUEST_METHOD', 'GET'));
     }
 
     /**
      * @param string $method
      * @param array $arguments
      * @return mixed
-     * @throws \Comma\Exception
+     * @throws Exception
      */
     public function __call($method, $arguments)
     {
         $method = strtoupper(trim($method));
-        if (!in_array($method, array_keys($this->_data))) {
-            throw new \Comma\Exception(sprintf("Request method %s is undefined", $method));
+        if (!array_key_exists($method, $this->data)) {
+            throw new Exception(sprintf('Request method %s is undefined', $method));
         }
-        array_unshift($arguments, $this->_data[$method]);
+        array_unshift($arguments, $this->data[$method]);
         $result = call_user_func_array(array($this, 'getValueOf'), $arguments);
+
         return $result;
     }
 
@@ -62,25 +65,25 @@ class Request
      * Get info about uploaded file
      * @param string $name
      * @param int|null $index
-     * @throws \Comma\Exception
+     * @throws Exception
      * @return array
      */
-    public function file($name, $index = null)
+    public function file($name, $index = null): array
     {
-        $files = & $this->_data['FILES'];
+        $files = &$this->data['FILES'];
         $result = array();
         if (!isset($files[$name])) {
-            throw new \Comma\Exception(sprintf("File \"%s\" not exists in \$_FILES!", $name), 500);
+            throw new Exception(sprintf('File "%s" not exists in $_FILES!', $name), 500);
         }
         if (!is_array($files[$name]['tmp_name'])) {
             $result = array($files[$name]);
         } else {
             foreach (array_keys($files[$name]) as $key) {
                 foreach (array_keys($files[$name]['tmp_name']) as $i) {
-                    $result[$i][$key] = isset($files[$name][$key][$i]) ? $files[$name][$key][$i] : null;
+                    $result[$i][$key] = $files[$name][$key][$i] ?? null;
                 }
             }
-            if (!is_null($index)) {
+            if (null !== $index) {
                 $result = array($result[$index]);
             }
         }
@@ -89,48 +92,59 @@ class Request
 
     /**
      * @return array
+     * @throws \Comma\Exception
      */
-    public function files()
+    public function files(): array
     {
         $result = array();
-        foreach ($this->_data['FILES'] as $key => $value) {
-            $result[$key] = $this->file($key);
+        if (!empty($this->data['FILES'])) {
+            foreach ($this->data['FILES'] as $key => $value) {
+                $result[$key] = $this->file($key);
+            }
         }
-        return $result;
-    }
 
-    public function server($name)
-    {
-        $server = & $this->_data['SERVER'];
-        if (in_array($name, array('HTTP_HOST', 'SERVER_NAME'))) {
-            $name = isset($server['SERVER_NAME']) ? 'SERVER_NAME' : (isset($server['HTTP_HOST']) ? 'HTTP_HOST' : 'SERVER_NAME');
-        }
-        if (func_num_args() > 1) {
-            $result = $this->getValueOf($server, $name, func_get_arg(1));
-        } else {
-            $result = $this->getValueOf($server, $name);
-        }
         return $result;
     }
 
     /**
-     * Getting list of vars
-     * @param null $requestMethod
+     * @param string $name
+     * @return array|mixed|string
      * @throws \Comma\Exception
+     */
+    public function server(string $name)
+    {
+        $server = &$this->data['SERVER'];
+        if (in_array($name, array('HTTP_HOST', 'SERVER_NAME'), true)) {
+            $name = isset($server['SERVER_NAME']) ? 'SERVER_NAME' : (isset($server['HTTP_HOST']) ? 'HTTP_HOST' : 'SERVER_NAME');
+        }
+        if (func_num_args() > 0) {
+            $result = $this->getValueOf($server, $name, func_get_arg(1));
+        } else {
+            $result = $this->getValueOf($server, $name);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get list of vars
+     * @param null $requestMethod
+     * @throws Exception
      * @return array
      */
-    public function vars($requestMethod = null)
+    public function vars($requestMethod = null): array
     {
         $result = null;
-        if (is_null($requestMethod)) {
-            $requestMethod = $this->_method;
+        if (null === $requestMethod) {
+            $requestMethod = $this->method;
         }
-        $availableMethods = array_keys($this->_data);
-        if (in_array($requestMethod, $availableMethods)) {
-            $result = $this->_data[$requestMethod];
+        $availableMethods = array_keys($this->data);
+        if (in_array($requestMethod, $availableMethods, true)) {
+            $result = $this->data[$requestMethod];
         } else {
-            throw new \Comma\Exception(sprintf("Undefined request method \"%s\". Use \"%s\"", $requestMethod, implode('" or "', $availableMethods)), 501);
+            throw new Exception(sprintf('Undefined request method "%s". Use "%s"', $requestMethod, implode('" or "', $availableMethods)), 501);
         }
+
         return $result;
     }
 
@@ -138,16 +152,16 @@ class Request
      * Return request method
      * @return string
      */
-    public function method()
+    public function method(): string
     {
-        return $this->_method;
+        return $this->method;
     }
 
     /**
      * Get raw data
      * @return string
      */
-    public function raw()
+    public function raw(): string
     {
         return file_get_contents('php://input');
     }
@@ -157,9 +171,9 @@ class Request
      * @param array $data
      * @param string $name
      * @return array|mixed|string
-     * @throws \Comma\Exception
+     * @throws Exception
      */
-    public function getValueOf(array $data, $name)
+    protected function getValueOf(array $data, $name)
     {
         $result = null;
         $haveDefault = func_num_args() > 2;
@@ -169,9 +183,10 @@ class Request
             if ($haveDefault) {
                 $result = func_get_arg(2);
             } else {
-                throw new \Comma\Exception(sprintf("Var \"%s\" not exists!", $name), 500);
+                throw new Exception(sprintf('Var "%s" not exists!', $name), 500);
             }
         }
+
         return $result;
     }
 }

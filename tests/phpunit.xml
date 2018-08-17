@@ -1,5 +1,0 @@
-<phpunit bootstrap="../vendor/autoload.php">
-    <testsuite name="Comma">
-        <directory>./</directory>
-    </testsuite>
-</phpunit>
